@@ -60,7 +60,7 @@ sudo apt install -y python3-venv python3-pip build-essential python3-dev
 echo "# Create a Python virtual environment."
 # Create a Python virtual environment 
 cd $PWD
-python -m venv --system-site-packages ugv-env
+python3 -m venv --system-site-packages ugv-env
 
 echo "# Activate a Python virtual environment."
 

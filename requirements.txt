@@ -1,3 +1,5 @@
+numpy==1.24.4
+scipy
 pyserial
 flask
 flask_socketio

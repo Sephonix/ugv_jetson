@@ -12,10 +12,10 @@ wdev0=wlan0 #wifi device that AP will work on
 
 #AP setup
 ap_profile_name='AccessPopup'
-ap_ssid='AccessPopup'
-ap_pw='1234567890'
-ap_ip='192.168.50.5/24'
-ap_gate='192.168.50.254'
+ap_ssid='UGV'
+ap_pw='12345678'
+ap_ip='192.168.4.2/24'
+ap_gate='192.168.4.254'
 
 #If wifi is disbaled in Network Manager, then enable it automaticaly.
 #if set to 'n' then wifi will stay off and no AccessPoint will be generated or Network Connection will be available.

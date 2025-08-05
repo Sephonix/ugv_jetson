@@ -1,0 +1,9 @@
+# ignore the python related folders, cache, and virtual env
+__pycache__/
+.ipynb_checkpoints/
+ugv-env/
+*.swp
+
+# ignore certain assistant output files
+response.wav
+voices/
