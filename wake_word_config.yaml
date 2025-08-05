@@ -1,0 +1,61 @@
+# Wake Word Detection Configuration for Jetson Assistant
+
+# Wake words and phrases (case-insensitive)
+# Add more wake words as needed
+wake_words:
+  - "jetson"
+  - "hey jetson"
+  - "hello jetson"
+  - "ok jetson"
+
+# Audio settings - tune these based on your environment
+audio:
+  sample_rate: 16000              # Sample rate in Hz (standard for speech)
+  chunk_size: 1024                # Audio buffer size
+  energy_threshold: 500           # Voice activity threshold (300-800 typical)
+  silence_threshold: 1.0          # Seconds of silence before stopping recording
+  max_recording_duration: 15      # Maximum command recording time (seconds)
+  calibration_duration: 3         # Background noise calibration time (seconds)
+
+# Wake word detection settings
+detection:
+  enable_similar_words: true      # Enable phonetically similar word detection
+  similar_words:
+    jetson:
+      - "jackson"
+      - "jet son" 
+      - "jets on"
+      - "jettison"
+    "hey jetson":
+      - "a jetson"
+      - "hay jetson"
+      - "hey jackson"
+    "hello jetson":
+      - "hello jackson"
+      - "hello jet son"
+
+# Assistant behavior settings
+assistant:
+  response_timeout: 30                                       # Maximum response generation time
+  enable_acknowledgment_sound: true                          # Play sound when wake word detected
+  acknowledgment_sound: "connected/ping.mp3"                 # Path to acknowledgment sound file
+  error_response: "Sorry, I didn't understand that command." # Default error message
+
+# LLM Configuration for responses
+llm:
+  model: "gemma3:1b"
+  base_url: "http://localhost:11434"
+  timeout: 30
+
+# Rover Control Configuration
+rover:
+  device: "/dev/ttyTHS1"           # GPIO serial device for rover communication
+  baud_rate: 115200                # Baud rate for rover communication
+  chassis_type: 2                  # 1=RaspRover, 2=UGV Rover, 3=UGV Beast
+  module_type: 2                  # 0=No module/gimbal, 1=Mechanical arm, 2=Gimbal
+
+# Advanced settings (modify with caution)
+advanced:
+  enable_preprocessing: true      # Enable audio preprocessing filters
+  energy_buffer_size: 50          # Rolling average buffer for energy calculation
+  wake_word_timeout: 10           # Maximum time to wait for wake word detection
