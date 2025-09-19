@@ -1,0 +1,40 @@
+# Configuration for Jetson Assistant (Porcupine Version)
+
+# Audio settings
+audio:
+  sample_rate: 16000              # Must be 16000 for Porcupine
+  chunk_size: 512                 # Porcupine frame length
+  silence_threshold: 2.0          # Seconds of silence before stopping recording
+  max_recording_duration: 15      # Maximum command recording time (seconds)
+  voice_activity_threshold: 0.01  # Threshold for voice activity detection during recording
+
+# Porcupine wake word settings
+porcupine:
+  # Built-in keywords available: 'alexa', 'americano', 'blueberry', 'bumblebee', 
+  # 'computer', 'grapefruit', 'grasshopper', 'hey google', 'hey siri', 'jarvis', 
+  # 'ok google', 'picovoice', 'porcupine', 'terminator'
+  keywords:
+    - "computer"
+    - "jarvis" 
+    - "porcupine"
+  # You can also use custom keyword files by specifying paths:
+  # keyword_paths:
+  #   - "/path/to/custom_wake_word.ppn"
+
+# Audio device settings
+device:
+  # USB Camera microphone device
+  input_device: "auto"  # Will auto-detect USB Camera, or specify device index/name
+  
+# Assistant behavior settings
+assistant:
+  enable_acknowledgment_sound: true
+  acknowledgment_sound: "connected/connected.mp3"
+  error_response: "Sorry, I didn't understand that command."
+  response_timeout: 30
+
+# LLM settings
+llm:
+  model: "gemma2:2b"
+  base_url: "http://localhost:11434"
+  timeout: 30

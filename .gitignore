@@ -6,4 +6,3 @@ ugv-env/
 
 # ignore certain assistant output files
 response.wav
-voices/
