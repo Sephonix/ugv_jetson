@@ -1,0 +1,23 @@
+[Unit]
+Description=UGV Flask Application
+After=network.target jtop.service
+Wants=jtop.service
+
+[Service]
+Type=simple
+User=ted
+SupplementaryGroups=jtop
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+ExecStartPre=/usr/bin/pulseaudio --start
+ExecStartPre=/usr/bin/sleep 1
+
+ExecStart=/home/ted/ugv_jetson/ugv-env/bin/python \
+          /home/ted/ugv_jetson/app.py
+          
+Restart=on-failure
+StandardOutput=append:/home/ted/ugv.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
