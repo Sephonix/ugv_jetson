@@ -16,7 +16,23 @@ from piper import PiperVoice
 import whisper
 
 import audio_ctrl
+import pygame
+import base_ctrl
 
+def pygame_joystick_init():
+    pygame.init()
+    pygame.joystick.init()
+    joystick_count = pygame.joystick.get_count()
+    if joystick_count == 0:
+        print("No joystick connected.")
+        return None
+    else:
+        # controller is hardcoded to be an xbox360 controller
+        joystick = pygame.joystick.Joystick(0)
+        joystick.init()
+        print(f"Joystick '{joystick.get_name()}' initialized with {joystick.get_numaxes()} axes and {joystick.get_numbuttons()} buttons.")
+        return joystick
+    
 # Load configuration
 def load_config():
     """Load configuration from YAML file"""
@@ -31,8 +47,8 @@ def load_config():
 config = load_config()
 
 # Voice and transcription models
-voice = PiperVoice.load("voices/glados.onnx", "voices/glados.json")
-whisper_model = whisper.load_model("base")
+# voice = PiperVoice.load("voices/glados.onnx", "voices/glados.json")
+# whisper_model = whisper.load_model("base")
 
 # Configuration settings
 WAKE_WORDS = config.get('wake_words', ["rover", "hey rover", "hello rover"])
@@ -353,97 +369,268 @@ def record_command_audio(max_duration=None):
     return None
 
 
-def start_assistant():
-    print("Jetson Assistant Starting...")
-    print(f"Wake words: {WAKE_WORDS}")
-    print(f"Acknowledgment sound: {'Enabled' if ENABLE_ACKNOWLEDGMENT_SOUND else 'Disabled'}")
+# def start_assistant():
+#     print("Jetson Assistant Starting...")
+#     print(f"Wake words: {WAKE_WORDS}")
+#     print(f"Acknowledgment sound: {'Enabled' if ENABLE_ACKNOWLEDGMENT_SOUND else 'Disabled'}")
 
-    # Test LLM connection
+#     # Test LLM connection
+#     try:
+#         _ = ollama.chat(
+#             model=LLM_MODEL,
+#             messages=[{'role': 'user', 'content': 'Hello'}],
+#             options={'timeout': 10}
+#         )
+#         print("LLM connection verified")
+#     except Exception as e:
+#         print(f"LLM connection issue: {e}")
+#         print("Make sure the LLM service is running and the model is available")
+
+#     pygame_joystick_init()
+
+#     # Calibrate environment
+#     try:
+#         wake_detector.calibrate_environment()
+#         print("If the threshold seems wrong, you can manually override it.")
+#         manual = input("Press Enter to continue or type a threshold value (e.g., 0.003): ").strip()
+#         if manual:
+#             try:
+#                 value = float(manual)
+#                 if 0.001 <= value <= 0.5:
+#                     wake_detector.calibrated_threshold = value
+#                     print(f"Manual threshold set to {value:.3f}")
+#                 else:
+#                     print("Invalid threshold range. Using auto-calibrated value.")
+#             except ValueError:
+#                 print("Invalid format. Using auto-calibrated value.")
+#     except Exception as e:
+#         print(f"Calibration failed: {e}")
+#         wake_detector.calibrated_threshold = 0.03
+
+#     print("Assistant ready!")
+#     print(f"Current threshold: {wake_detector.calibrated_threshold:.3f}")
+
+#     consecutive_failures = 0
+#     max_failures = 3
+
+#     while True:
+#         try:
+#             wake_detector.stop_listening.clear()
+#             print("Listening for wake word...")
+#             if wake_detector.listen_for_wake_word():
+#                 consecutive_failures = 0
+#                 command_file = record_command_audio()
+#                 if command_file:
+#                     try:
+#                         command_text = transcribe_audio(command_file)
+#                         print(f"Command: {command_text}")
+#                         if command_text:
+#                             response = ask_llm(command_text)
+#                             print(f"Response: {response}")
+#                             if response:
+#                                 text_to_speech(response)
+#                         else:
+#                             print("No command detected")
+#                     except Exception as e:
+#                         print(f"Error processing command: {e}")
+#                         text_to_speech(ERROR_RESPONSE)
+#                     finally:
+#                         try:
+#                             os.unlink(command_file)
+#                         except:
+#                             pass
+#                 time.sleep(1)
+#             else:
+#                 consecutive_failures += 1
+#                 if consecutive_failures >= max_failures:
+#                     print("Multiple listening failures. Threshold might be too high. Resetting...")
+#                     consecutive_failures = 0
+#                     time.sleep(2)
+#         except KeyboardInterrupt:
+#             # Graceful shutdown on keyboard interrupt (^C)
+#             print("Assistant stopping...")
+#             wake_detector.stop_listening.set()
+#             break
+#         except Exception as e:
+#             print(f"Error in assistant loop: {e}")
+#             consecutive_failures += 1
+#             if consecutive_failures >= max_failures:
+#                 print("Too many errors, restarting loop...")
+#                 consecutive_failures = 0
+#                 time.sleep(3)
+#             else:
+#                 time.sleep(1)
+
+
+def test_controller_gimbal():
+    """Test controller support for gimbal control (right stick) and wheel control (left stick)"""
+    print("Controller Test Starting...")
+    
+    # Initialize controller
+    joystick = pygame_joystick_init()
+    if joystick is None:
+        print("Error: No controller detected. Exiting.")
+        return
+    
+    # Initialize base controller for gimbal and wheel control
     try:
-        _ = ollama.chat(
-            model=LLM_MODEL,
-            messages=[{'role': 'user', 'content': 'Hello'}],
-            options={'timeout': 10}
-        )
-        print("LLM connection verified")
+        base = base_ctrl.BaseController('/dev/ttyTHS1', 115200)
+        print("Base controller initialized successfully")
     except Exception as e:
-        print(f"LLM connection issue: {e}")
-        print("Make sure the LLM service is running and the model is available")
-
-    # Calibrate environment
+        print(f"Error initializing base controller: {e}")
+        return
+    
+    # Control parameters
+    GIMBAL_SPEED = 50  # Speed for gimbal UI control
+    MAX_WHEEL_SPEED = 0.2  # Maximum speed for wheels (matches config.yaml max_speed)
+    DEADZONE = 0.2  # Joystick deadzone
+    
+    # Center gimbal at start
+    print("Centering gimbal...")
+    base.gimbal_ctrl(0, 0, 0, 0)
+    time.sleep(1)
+    
+    print("Controller ready!")
+    print("Left stick: Control wheels (forward/back/turn)")
+    print("Right stick: Control gimbal (pan/tilt)")
+    print("Press START button or Ctrl+C to exit.")
+    
+    running = True
+    last_gimbal_x = 0
+    last_gimbal_y = 0
+    last_left_speed = 0
+    last_right_speed = 0
+    last_a_button = False  # Track A button state for toggle
+    
     try:
-        wake_detector.calibrate_environment()
-        print("If the threshold seems wrong, you can manually override it.")
-        manual = input("Press Enter to continue or type a threshold value (e.g., 0.003): ").strip()
-        if manual:
+        while running:
+            pygame.event.pump()  # Process pygame events
+            
+            # ========== LEFT STICK - WHEEL CONTROL ==========
+            # Read left joystick (axis 0 and 1 for Xbox controller)
+            # Axis 0: Left stick horizontal (turn)
+            # Axis 1: Left stick vertical (forward/backward)
             try:
-                value = float(manual)
-                if 0.001 <= value <= 0.5:
-                    wake_detector.calibrated_threshold = value
-                    print(f"Manual threshold set to {value:.3f}")
+                left_x = joystick.get_axis(0)  # Turn
+                left_y = joystick.get_axis(1)  # Forward/Back
+            except:
+                print("Error reading left joystick axes")
+                break
+            
+            # Apply deadzone
+            if abs(left_x) < DEADZONE:
+                left_x = 0.0
+            if abs(left_y) < DEADZONE:
+                left_y = 0.0
+            
+            # Calculate tank drive speeds
+            # Forward/backward is negative Y (up is negative on joystick)
+            # Turn is X (positive right)
+            # Tank drive: left_speed = throttle - turn, right_speed = throttle + turn
+            throttle = -left_y  # Invert Y so up is forward
+            turn = left_x
+            
+            # Calculate left and right wheel speeds
+            left_speed = (throttle - turn) * MAX_WHEEL_SPEED
+            right_speed = (throttle + turn) * MAX_WHEEL_SPEED
+            
+            # Clamp speeds to max range
+            left_speed = max(-MAX_WHEEL_SPEED, min(MAX_WHEEL_SPEED, left_speed))
+            right_speed = max(-MAX_WHEEL_SPEED, min(MAX_WHEEL_SPEED, right_speed))
+            
+            # Round to 2 decimal places for cleaner output
+            left_speed = round(left_speed, 2)
+            right_speed = round(right_speed, 2)
+            
+            # Send wheel command if speed changed
+            if left_speed != last_left_speed or right_speed != last_right_speed:
+                base.base_speed_ctrl(left_speed, right_speed)
+                if left_speed != 0 or right_speed != 0:
+                    print(f"Wheels: L={left_speed}, R={right_speed}")
+                last_left_speed = left_speed
+                last_right_speed = right_speed
+            
+            # ========== RIGHT STICK - GIMBAL CONTROL ==========
+            # Read right joystick (typically axis 2 and 3 for Xbox controller)
+            # Axis 2: Right stick horizontal (X)
+            # Axis 3: Right stick vertical (Y)
+            try:
+                right_x = joystick.get_axis(2)  # Horizontal
+                right_y = joystick.get_axis(3)  # Vertical (inverted)
+            except:
+                print("Error reading joystick axes")
+                break
+            
+            # Apply deadzone to raw values and round to prevent floating point issues
+            if abs(right_x) < DEADZONE:
+                right_x = 0.0
+            if abs(right_y) < DEADZONE:
+                right_y = 0.0
+            
+            # Convert joystick input to gimbal control values
+            # X: -1 (left), 0 (stop), 1 (right)
+            # Y: -1 (down), 0 (stop), 1 (up)
+            x_input = 0
+            y_input = 0
+            
+            # Only set input if joystick is actually moved beyond deadzone
+            if right_x > 0:
+                x_input = 1  # Right
+            elif right_x < 0:
+                x_input = -1  # Left
+            
+            if right_y > 0:
+                y_input = -1  # Down (joystick down = positive, but we want down)
+            elif right_y < 0:
+                y_input = 1  # Up (joystick up = negative, but we want up)
+            
+            # Send command whenever input changes
+            if x_input != last_gimbal_x or y_input != last_gimbal_y:
+                # If both inputs are 0, explicitly stop the gimbal
+                if x_input == 0 and y_input == 0:
+                    # print(f"Gimbal STOP")
+                    # Send stop command using T:135
+                    base.send_command({"T":135})
                 else:
-                    print("Invalid threshold range. Using auto-calibrated value.")
-            except ValueError:
-                print("Invalid format. Using auto-calibrated value.")
-    except Exception as e:
-        print(f"Calibration failed: {e}")
-        wake_detector.calibrated_threshold = 0.03
-
-    print("Assistant ready!")
-    print(f"Current threshold: {wake_detector.calibrated_threshold:.3f}")
-
-    consecutive_failures = 0
-    max_failures = 3
-
-    while True:
-        try:
-            wake_detector.stop_listening.clear()
-            print("Listening for wake word...")
-            if wake_detector.listen_for_wake_word():
-                consecutive_failures = 0
-                command_file = record_command_audio()
-                if command_file:
-                    try:
-                        command_text = transcribe_audio(command_file)
-                        print(f"Command: {command_text}")
-                        if command_text:
-                            response = ask_llm(command_text)
-                            print(f"Response: {response}")
-                            if response:
-                                text_to_speech(response)
-                        else:
-                            print("No command detected")
-                    except Exception as e:
-                        print(f"Error processing command: {e}")
-                        text_to_speech(ERROR_RESPONSE)
-                    finally:
-                        try:
-                            os.unlink(command_file)
-                        except:
-                            pass
-                time.sleep(1)
-            else:
-                consecutive_failures += 1
-                if consecutive_failures >= max_failures:
-                    print("Multiple listening failures. Threshold might be too high. Resetting...")
-                    consecutive_failures = 0
-                    time.sleep(2)
-        except KeyboardInterrupt:
-            # Graceful shutdown on keyboard interrupt (^C)
-            print("Assistant stopping...")
-            wake_detector.stop_listening.set()
-            break
-        except Exception as e:
-            print(f"Error in assistant loop: {e}")
-            consecutive_failures += 1
-            if consecutive_failures >= max_failures:
-                print("Too many errors, restarting loop...")
-                consecutive_failures = 0
-                time.sleep(3)
-            else:
-                time.sleep(1)
+                    print(f"Gimbal: X={x_input}, Y={y_input}")
+                    base.gimbal_base_ctrl(x_input, y_input, GIMBAL_SPEED)
+                last_gimbal_x = x_input
+                last_gimbal_y = y_input
+            
+            # Check for A button (button 0 on Xbox controller) to toggle lights
+            try:
+                a_button = joystick.get_button(0)  # A button
+                if a_button and not last_a_button:  # Button just pressed (rising edge)
+                    base.base_lights_ctrl()  # Toggle lights
+                    print("Lights toggled")
+                last_a_button = a_button
+            except:
+                pass
+            
+            # Check for START button (button 7 on Xbox controller) to exit
+            try:
+                if joystick.get_button(7):  # START button
+                    print("START button pressed. Exiting...")
+                    base.gimbal_ctrl(0, 0, 0, 0)
+                    base.base_speed_ctrl(0, 0)  # Stop wheels
+                    running = False
+            except:
+                pass
+            
+            time.sleep(0.02)  # 50Hz update rate
+            
+    except KeyboardInterrupt:
+        print("\nController test stopping...")
+    finally:
+        # Stop everything
+        print("Stopping rover...")
+        base.base_speed_ctrl(0, 0)  # Stop wheels
+        base.send_command({"T":135})  # Stop gimbal
+        time.sleep(0.5)
+        print("Test complete.")
 
 from numpy import int16
 
 if __name__ == "__main__":
-    start_assistant()
+    # start_assistant()  # Commented out for controller testing
+    test_controller_gimbal()  # Test controller gimbal support
