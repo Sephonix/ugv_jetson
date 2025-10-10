@@ -249,6 +249,14 @@ class BaseController:
 			self.base_light_status = 255
 		self.lights_ctrl(self.base_light_status, self.head_light_status)
 
+	# add head_lights_ctrl toggle
+	def head_lights_ctrl(self):
+		if self.head_light_status != 0:
+			self.head_light_status = 0
+		else:
+			self.head_light_status = 255
+		self.lights_ctrl(self.base_light_status, self.head_light_status)
+
 
 	def gimbal_dev_close(self):
 		self.ser.close()
