@@ -163,6 +163,10 @@ class WakeWordDetector:
 
         except Exception as e:
             print(f"Error communicating with Ollama: {e}")
+        
+        rec = vosk.KaldiRecognizer(self.model, self.samplerate)
+        with self.audio_queue.mutex:
+            self.audio_queue.queue.clear()
 
 if __name__ == "__main__":
     detector = WakeWordDetector()
