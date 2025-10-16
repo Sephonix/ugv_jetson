@@ -10,6 +10,9 @@ from collections import deque
 from audio_config import parse_audio_args, init_tts_engine # The wake word to listen for 
 
 class WakeWordDetector:
+
+    command_list = ["move forward", "turn left", "turn right", "stop"]
+
     def __init__(self):
         
         # Parse audio device and sample rate from command line
@@ -79,6 +82,12 @@ class WakeWordDetector:
             print("\nStopping wake word detection.")
             self.running = False
 
+    def text_to_speech(self, text):
+            engine = init_tts_engine()
+            engine.say(text)
+            engine.runAndWait()
+            engine.stop()
+
     def capture_command(self, rec):
         """
         Captures the command immediately after wake word using:
@@ -142,11 +151,27 @@ class WakeWordDetector:
 
         print("Returning to wake word listening.\n" + "="*40)
     
+    def execute_command(self, command_text):
+        command_text = command_text.lower()
+        for command in self.command_list:
+            if command in command_text:
+                print(f"Executing: {command}")
+                self.text_to_speech(f"Executing: {command}")
+                return
+
+
     def respond_to_command(self, command_text):
         """Send recognized command to Ollama and speak the reply."""
+
+        # skip ollama if command_text is detected in the command list
+        if any(command in command_text for command in self.command_list):
+            self.execute_command(command_text)
+            return
+
         print("🤖 Sending to Ollama...")
         try:
-            response = chat(model='llama3.2', messages=[
+            response = chat(model='llama3.2:1b', messages=[
+                {'role': 'system', 'content': "Your name is Banana, an autonomous rover that can interact with the world by accepting commands from the user. Only output pure raw text."},
                 {'role': 'user', 'content': command_text}
             ])
             reply = response['message']['content']
@@ -160,6 +185,8 @@ class WakeWordDetector:
             engine.say(reply)
             engine.runAndWait()
             engine.stop()
+
+            self.execute_command(command_text)
 
         except Exception as e:
             print(f"Error communicating with Ollama: {e}")
