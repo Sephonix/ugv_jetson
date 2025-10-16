@@ -9,7 +9,8 @@ import audio_ctrl
 import pygame
 import base_ctrl
 
-from assistant_modules.control.dualsense_controller import DualSenseController
+# from assistant_modules.control.dualsense_controller import DualSenseController
+from assistant_modules.control.xbox360_controller import Xbox360Controller 
 
 # def ask_llm(query):
 #     response = ollama.chat(
@@ -45,7 +46,7 @@ def main():
     # Initialize pygame for joystick handling and audio
     # TODO: Implement a system to support multiple controller types
     pygame.init()
-    controller = DualSenseController(
+    controller = Xbox360Controller(
         base_controller=base,
         max_wheel_speed=0.2,  # Matches config.yaml max_speed
         gimbal_speed=50,  # Speed for gimbal UI control
@@ -67,8 +68,9 @@ def main():
     print("Controller ready!")
     print("  Left stick: Wheels")
     print("  Right stick: Gimbal")
-    print("  Cross (X): Toggle lights")
-    print("  Options: Exit")
+    print("  RB: Center Gimbal")
+    print("  X: Toggle lights")
+    print("  Start: Exit")
     print("=" * 40 + "\n")
 
 
