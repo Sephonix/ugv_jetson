@@ -180,10 +180,7 @@ class WakeWordDetector:
             sd.stop()
 
             # Speak it
-            self.engine = init_tts_engine()
-            self.engine.say(reply)
-            self.engine.runAndWait()
-            self.engine.stop()
+            self.text_to_speech(reply)
 
             self.execute_command(command_text)
 
