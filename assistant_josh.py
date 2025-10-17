@@ -24,7 +24,6 @@ class WakeWordDetector:
             sys.exit(1)
         self.running = True
         self.audio_queue = queue.Queue()
-        self.engine = init_tts_engine()
         
         print("Vosk model loaded successfully.")
 
@@ -83,6 +82,7 @@ class WakeWordDetector:
             self.running = False
 
     def text_to_speech(self, text):
+            self.engine = init_tts_engine()
             self.engine.say(text)
             self.engine.runAndWait()
             self.engine.stop()
@@ -180,6 +180,7 @@ class WakeWordDetector:
             sd.stop()
 
             # Speak it
+            self.engine = init_tts_engine()
             self.engine.say(reply)
             self.engine.runAndWait()
             self.engine.stop()
